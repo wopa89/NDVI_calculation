@@ -9,7 +9,9 @@ from satsearch import Search
 import rasterio as rio
 import matplotlib.pyplot as plt
 import numpy
+import sys
 
+#search and download satellite images
 search = Search(bbox=[11.264539,48.041888, 11.378214,47.804930],
                datetime='2018-02-01/2018-03-04',
                property=["eo:cloud_cover<5"])
@@ -19,10 +21,18 @@ items = search.items()
 for item in items:
     print(item)
 
-item1 = items[2]
+#Check if image was found, otherwise stop here
+try:
+    item1 = items[2]
+except:
+    print("No image found")
+    sys.exit()
 
 item1_band4_url = item1.assets["B4"]["href"]    #red
 item1_band5_url = item1.assets["B5"]["href"]    #NIR
+
+
+#hier kommt funktion für tiling
 
 window = rio.windows.Window(3000, 5000, 1000, 1000)
 
