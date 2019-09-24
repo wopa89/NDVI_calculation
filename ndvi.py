@@ -13,36 +13,35 @@ import sys
 
 #search and download satellite images
 search = Search(bbox=[11.264539,48.041888, 11.378214,47.804930],
-               datetime='2018-02-01/2018-03-04',
+               datetime='2018-02-01/2018-02-04',
                property=["eo:cloud_cover<5"])
-
 items = search.items()
-
 for item in items:
     print(item)
 
 #Check if image was found, otherwise stop here
+for item in items:
+    item_prop = item.properties["collection"]
+    if item_prop.startswith("landsat"):
+        item_band4_url = item.assets["B4"]["href"]    #red
+        item_band5_url = item.assets["B5"]["href"]    #NIR
+        break
+    else:
+        continue
 try:
-    item1 = items[2]
+    item_found = item_band4_url[0]
 except:
-    print("No image found")
+    print("No landsat scene found")
     sys.exit()
-
-item1_band4_url = item1.assets["B4"]["href"]    #red
-item1_band5_url = item1.assets["B5"]["href"]    #NIR
-
 
 #hier kommt funktion für tiling
 
 window = rio.windows.Window(3000, 5000, 1000, 1000)
 
-with rio.open(item1_band4_url) as src:
-    #affine = src.transform
+with rio.open(item_band4_url) as src:
     band4 = src.read(1, window=window)
-    affine = src.transform
 
-with rio.open(item1_band5_url) as src:
-    #affine = src.transform
+with rio.open(item_band5_url) as src:
     band5 = src.read(1, window=window)
 
 # Allow division by zero
