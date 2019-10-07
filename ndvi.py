@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Sep  9 14:46:43 2019
+Created on Mon Aug 19 11:21:55 2019
 
 @author: Pascal
 """
@@ -43,42 +43,42 @@ except:
     print("No landsat scene found")
     sys.exit()
 
-#hier kommt funktion für tiling
-
-
-#read the red and nir band 
+#create bounding box and convert geographic coordinates to image coordinates
 with rio.open(item_band4_url) as src:
-    oviews = src.overviews(1) # list of overviews from biggest to smallest
-    oview = oviews[1]  # Use second-highest resolution overview
-    band4 = src.read(1, out_shape=(1, int(src.height // oview), int(src.width // oview)))
+    affine = src.transform
+    print(affine)
+    xmin = affine[2] + 45000
+    xmax = affine[2] + 65000
+    ymin = affine[5] - 50000
+    ymax = affine[5] - 30000
+    col_start, row_start = ~affine * (xmin, ymax)
+    col_end, row_end = ~affine * (xmax, ymin)
+    print(col_start, row_start)
+    print(col_end, row_end)
 
+#create window with image coordinates
+with rio.open(item_band4_url) as src:
+    band4 = src.read(1, window=((int(row_start), int(row_end)), (int(col_start), int(col_end)) )) #
+    
 with rio.open(item_band5_url) as src:
-    oviews = src.overviews(1) # list of overviews from biggest to smallest
-    oview = oviews[1]  # Use second-highest resolution overview
-    band5 = src.read(1, out_shape=(1, int(src.height // oview), int(src.width // oview)))
-
+    band5 = src.read(1, window=((int(row_start), int(row_end)), (int(col_start), int(col_end)) )) #
+    
 #allow division by zero
 numpy.seterr(divide='ignore', invalid='ignore')
 
 #call function
 ndvi = calc_ndvi(band5,band4)
 
-#write raster
+#get x,y pixel size
+x = band4.shape[0]
+y = band4.shape[1]
+
 localname = 'example.tif'
-#modify the original metadata to fit the subsampled overview
-with rio.open(item_band5_url) as src:
-    profile = src.profile.copy()
-
-    aff = src.transform
-    newaff = rio.Affine(aff.a * oview, aff.b, aff.c, aff.d, aff.e * oview, aff.f)
-    profile.update({
-            'dtype': 'float32',
-            'height': ndvi.shape[0],
-            'width': ndvi.shape[1],
-            'transform': newaff})  
-
-    with rio.open(localname, 'w', **profile) as dst:
-        dst.write_band(1, ndvi)
+#Zuerst wird das Raster erstellt mit driver, width, height, count und dtype
+#Anschließend wird das Raster gefüllt, Window funktion gibt an, wie das Raster ausgefüllt werden soll
+#   In dem Fall soll das Band so groß sein wie das geschriebene Raster
+with rio.open(localname, 'w', driver='GTiff', width=x, height=y, count=1, dtype=ndvi.dtype) as dst:
+    dst.write(ndvi, window = rio.windows.Window(0,0, x,y), indexes=1)
 
 #reopen and plotting raster
 datetime='2018-08-06'
@@ -88,6 +88,6 @@ with rio.open(localname) as src:
 
 plt.imshow(ndvi, cmap='RdYlGn')
 plt.colorbar()
-plt.title('NDVI {}'.format(datetime))
+plt.title('Overview - Pixel {}'.format(band4.shape))
 plt.xlabel('Column #')
 plt.ylabel('Row #')
