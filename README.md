@@ -3,7 +3,7 @@ This repository features a Python script that calculates the NDVI of an automati
 
 ## Dependencies
 -Version: Python 3.7.4<br/>
--Installation: conda create -n name_of_environment python=3 rasterio satsearch
+-Installation: conda create -n name_of_environment python=3 numpy rasterio satsearch
 
 ## Usage
 python ndvi.py output_ndvi1.tif output_ndvi2.tif output_difference.tif latitude longitude latitude longitude YYYY-MM-DD YYYY-MM-DD meters meters
